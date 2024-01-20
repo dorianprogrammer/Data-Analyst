@@ -168,3 +168,97 @@ set PropertySplitCity = SUBSTRING(PropertyAddress, CHARINDEX(',', PropertyAddres
 
 select *
 from PortfolioProject..NashvilleHousing
+
+select OwnerAddress
+from PortfolioProject..NashvilleHousing
+
+select 
+PARSENAME(REPLACE(OwnerAddress,',', '.'), 3),
+PARSENAME(REPLACE(OwnerAddress,',', '.'), 2),
+PARSENAME(REPLACE(OwnerAddress,',', '.'), 1)
+from PortfolioProject..NashvilleHousing
+
+alter table PortfolioProject..NashvilleHousing
+add OwnerSplitAddress nvarchar(255);
+
+update PortfolioProject..NashvilleHousing
+set OwnerSplitAddress = PARSENAME(REPLACE(OwnerAddress,',', '.'), 3)
+
+alter table PortfolioProject..NashvilleHousing
+add OwnerSplitCity nvarchar(255);
+
+update PortfolioProject..NashvilleHousing
+set OwnerSplitCity = PARSENAME(REPLACE(OwnerAddress,',', '.'), 2)
+
+alter table PortfolioProject..NashvilleHousing
+add OwnerSplitState nvarchar(255);
+
+update PortfolioProject..NashvilleHousing
+set OwnerSplitState = PARSENAME(REPLACE(OwnerAddress,',', '.'), 1)
+
+
+-- change Y and N yo yes and no in 'Sold as Vacant' field
+
+select Distinct(SoldAsVacant), count(SoldAsVacant)
+from PortfolioProject..NashvilleHousing
+group by SoldAsVacant
+
+select SoldAsVacant,
+	case when SoldAsVacant = 'Y' then 'YES'
+	     when SoldAsVacant = 'N' then 'NO'
+		 else SoldAsVacant
+	end
+from PortfolioProject..NashvilleHousing
+
+
+update PortfolioProject..NashvilleHousing
+set SoldAsVacant = case when SoldAsVacant = 'Y' then 'YES'
+						when SoldAsVacant = 'N' then 'NO'
+						else SoldAsVacant
+					end;
+
+-- Remove Duplicate
+
+with RowNumCTE as (
+select *,
+ROW_NUMBER() over (
+	partition by ParcelId, 
+	PropertyAddress, 
+	SalePrice, 
+	SaleDate, 
+	LegalReference order by UniqueID) row_num
+from PortfolioProject..NashvilleHousing
+--order by ParcelID
+)
+delete
+from RowNumCTE
+where row_num > 1
+
+with RowNumCTE as (
+select *,
+ROW_NUMBER() over (
+	partition by ParcelId, 
+	PropertyAddress, 
+	SalePrice, 
+	SaleDate, 
+	LegalReference order by UniqueID) row_num
+from PortfolioProject..NashvilleHousing
+--order by ParcelID
+)
+select *
+from RowNumCTE
+where row_num > 1
+order by PropertyAddress
+
+
+-- Delete unused columns
+
+select *
+from PortfolioProject..NashvilleHousing
+
+alter table PortfolioProject..NashvilleHousing
+drop column OwnerAddress, TaxDistrict, PropertyAddress
+
+alter table PortfolioProject..NashvilleHousing
+drop column SaleDate
+
